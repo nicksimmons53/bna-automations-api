@@ -2,6 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const axios = require("axios");
 const cors = require("cors");
+const {DateTime} = require("luxon");
 
 const app = express();
 const port = 3000;
@@ -46,10 +47,51 @@ app.post('/hubspot/contacts', async (req, res) => {
       company: req.body.Company,
       website: "",
       lifecyclestage: "lead"
+    },
+  }, {
+    headers: { Authorization: `Bearer ${process.env.HUBSPOT_TOKEN}`}
+  }).then(hubspotRes => res.send("Success"));
+});
+
+app.post('/hubspot/tasks', async (req, res) => {
+  let now = DateTime.now();
+
+  await axios.post(`${process.env.HUBSPOT_API_URL}/objects/tasks`, {
+    associations: [
+      {
+        types: [
+          {
+            associationCategory: "HUBSPOT_DEFINED",
+            associationTypeId: 204
+          }
+        ],
+        to: {
+          id: req.body.contactId // CONTACT ID NEED TO CHANGE
+        }
+      }
+    ],
+    objectWriteTraceId: "string",
+    properties: {
+      hs_timestamp: now.plus({ hours: 24 }).toUTC().toString(), // 24 hours
+      hs_task_body: req.body.taskBody,
+      hubspot_owner_id: req.body.hubspotOwnerId,
+      hs_task_subject: req.body.taskSubject,
+      hs_task_status: "NOT_STARTED",
+      hs_task_priority: req.body.taskPriority,
+      hs_task_type: req.body.taskType,
+      hs_task_reminders: now.plus({ days: 7 }).ts // Date.now() + 24*60*60 (this should be 3 days)
     }
   }, {
     headers: { Authorization: `Bearer ${process.env.HUBSPOT_TOKEN}`}
   }).then(hubspotRes => res.send("Success"));
+});
+
+app.get('/hubspot/owners', async (req, res) => {
+  await axios.get(`${process.env.HUBSPOT_API_URL}/owners`, {
+    headers: { Authorization: `Bearer ${process.env.HUBSPOT_TOKEN}`}
+  })
+    .then(hubspotRes => hubspotRes.data)
+    .then(data => res.json(data));
 });
 
 app.listen(port, () => {
