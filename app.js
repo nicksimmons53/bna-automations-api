@@ -50,7 +50,7 @@ app.post('/hubspot/contacts', async (req, res) => {
     },
   }, {
     headers: { Authorization: `Bearer ${process.env.HUBSPOT_TOKEN}`}
-  }).then(hubspotRes => res.send("Success"));
+  }).then(hubspotRes => res.send(hubspotRes.data));
 });
 
 app.post('/hubspot/tasks', async (req, res) => {
